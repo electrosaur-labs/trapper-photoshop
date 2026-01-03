@@ -1,6 +1,6 @@
 # Trapper for Photoshop
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL--3.0](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Adobe Photoshop](https://img.shields.io/badge/Adobe%20Photoshop-2024+-31A8FF?logo=adobe-photoshop)](https://www.adobe.com/products/photoshop.html)
 [![UXP](https://img.shields.io/badge/UXP-5.0-FF61F6)](https://developer.adobe.com/photoshop/uxp/)
 
@@ -280,7 +280,7 @@ Quick start:
 
 ## License
 
-MIT License - See LICENSE file for details
+GPL-3.0 License - See LICENSE file for details
 
 ## Credits
 

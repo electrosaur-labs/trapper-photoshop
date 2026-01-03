@@ -24,7 +24,7 @@
     "lithography"
   ],
   "author": "Electrosaur",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/electrosaur-labs/trapper-photoshop.git"

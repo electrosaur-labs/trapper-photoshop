@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Adobe Clean', sans-serif;
+        }
+
+        dialog {
+            border: none;
+            border-radius: 8px;
+            padding: 0;
+        }
+
+        .trapper-dialog {
+            padding: 24px;
+            font-size: 14px;
+            color: #323232;
+            min-width: 400px;
+        }
+
+        .trapper-header {
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e1e1e1;
+        }
+
+        .trapper-header h1 {
+            font-size: 18px;
+            margin: 0 0 4px 0;
+            font-weight: 600;
+        }
+
+        .trapper-header p {
+            font-size: 12px;
+            color: #6e6e6e;
+            margin: 0;
+        }
+
+        .trapper-section {
+            margin-bottom: 20px;
+        }
+
+        .trapper-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6e6e6e;
+        }
+
+        .trapper-field {
+            margin-bottom: 12px;
+        }
+
+        .trapper-field label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 13px;
+            color: #323232;
+        }
+
+        .trapper-field input,
+        .trapper-field select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #c4c4c4;
+            border-radius: 4px;
+            font-size: 13px;
+            background: white;
+            box-sizing: border-box;
+        }
+
+        .trapper-field input:focus,
+        .trapper-field select:focus {
+            outline: none;
+            border-color: #1473e6;
+            box-shadow: 0 0 0 1px #1473e6;
+        }
+
+        .trapper-info {
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #6e6e6e;
+        }
+
+        .trapper-info.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .trapper-info.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .trapper-button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            justify-content: flex-end;
+        }
+
+        .trapper-button {
+            padding: 10px 20px;
+            background: #1473e6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .trapper-button:hover:not(:disabled) {
+            background: #0d66d0;
+        }
+
+        .trapper-button:disabled {
+            background: #c4c4c4;
+            cursor: not-allowed;
+        }
+
+        .trapper-button.secondary {
+            background: #f4f4f4;
+            color: #323232;
+            border: 1px solid #c4c4c4;
+        }
+
+        .trapper-button.secondary:hover:not(:disabled) {
+            background: #e8e8e8;
+        }
+
+        .trapper-progress {
+            margin-top: 16px;
+            display: none;
+        }
+
+        .trapper-progress.active {
+            display: block;
+        }
+
+        .trapper-progress-bar {
+            height: 4px;
+            background: #e1e1e1;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .trapper-progress-fill {
+            height: 100%;
+            background: #1473e6;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .trapper-progress-text {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #6e6e6e;
+        }
+    </style>
+</head>
+<body>
+    <dialog id="trapperDialog">
+        <div class="trapper-dialog">
+            <div class="trapper-header">
+                <h1>Color Trapping</h1>
+                <p>Apply precise trapping for print production</p>
+            </div>
+
+            <div class="trapper-section">
+                <div class="trapper-section-title">Printing Mode</div>
+                <div class="trapper-field">
+                    <select id="printingMode">
+                        <option value="offset">Offset Lithography</option>
+                        <option value="screen" selected>Screen Printing</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="trapper-section">
+                <div class="trapper-section-title">Trap Size</div>
+                <div class="trapper-field">
+                    <label for="trapSize">Maximum Trap (lightest layer)</label>
+                    <input type="text" id="trapSize" value="4pt" placeholder="e.g., 1/32, 4pt" />
+                </div>
+                <div class="trapper-info">
+                    <strong>Offset:</strong> Use fractional inches (1/32, 1/64)<br>
+                    <strong>Screen:</strong> Use points (2pt, 4pt, 6pt)<br>
+                    Trap decreases linearly from lightest to darkest layer (0 trap).
+                </div>
+            </div>
+
+            <div id="progressContainer" class="trapper-progress">
+                <div class="trapper-progress-bar">
+                    <div id="progressFill" class="trapper-progress-fill"></div>
+                </div>
+                <div id="progressText" class="trapper-progress-text">Processing...</div>
+            </div>
+
+            <div class="trapper-button-group">
+                <button id="cancelButton" class="trapper-button secondary">Cancel</button>
+                <button id="applyButton" class="trapper-button">Apply Trapping</button>
+            </div>
+        </div>
+    </dialog>
+    <script src="index.js"></script>
+</body>
+</html>

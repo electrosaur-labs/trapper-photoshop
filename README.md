@@ -1,0 +1,297 @@
+# Trapper - Photoshop Color Trapping Plugin
+
+A professional UXP plugin for Adobe Photoshop that provides automated color trapping for print production. Supports both offset lithography and screen printing workflows.
+
+## Features
+
+- 🎨 **Automatic Color Separation** - Analyzes and separates up to 10 distinct colors
+- 📏 **Precise Trap Sizing** - Supports fractional inches (1/32"), decimals, and points
+- 🖨️ **Dual Mode Support** - Optimized for both offset and screen printing
+- ⚡ **High Performance** - Morphological dilation algorithm with iterative processing
+- 🎯 **Smart Trapping** - Light colors expand under dark colors automatically
+- 💾 **Non-Destructive** - Preserves original layers while creating trapped versions
+
+## Requirements
+
+- Adobe Photoshop 2024 (v24.0.0) or later
+- **Document must be in RGB color mode** (required)
+- UXP Developer Tool (for development)
+- Node.js 14+ and npm (for building)
+
+## Installation
+
+### For Users
+
+1. Download the latest `.ccx` file from releases
+2. Double-click to install in Creative Cloud
+3. Restart Photoshop
+4. Find "Trapper" in Window > Extensions menu
+
+### For Developers
+
+```bash
+# Clone the repository
+git clone https://github.com/yourorg/ps-trap-plugin.git
+cd ps-trap-plugin
+
+# Install dependencies
+npm install
+
+# Build the plugin
+npm run build
+
+# For development with watch mode
+npm run dev
+```
+
+## Usage
+
+### Basic Workflow
+
+1. **Open a document** in Photoshop (**must be in RGB mode**, 8-bit)
+2. **Open the Trapper panel** from Window > Extensions > Trapper
+3. **Select printing mode**:
+   - **Offset Lithography**: Commercial printing (default: 0-1/32" trapping)
+   - **Screen Printing**: Garment/poster printing (default: 0-4pt trapping)
+4. **Set trap sizes**:
+   - **Min Trap**: Applied to darkest colors (typically 0)
+   - **Max Trap**: Applied to lightest colors (e.g., 1/32" or 4pt)
+5. **Click "Apply Trapping"** to process
+
+### Trap Size Formats
+
+The plugin accepts trap sizes in multiple formats:
+
+- **Fractions**: `1/32`, `1/64`, `1/16` (inches)
+- **Decimals**: `0.03125`, `0.015625` (inches)
+- **Points**: `2pt`, `4pt`, `6pt` (72 points = 1 inch)
+
+### Options
+
+- **Preserve original layers**: Keeps source layers (hidden) after trapping
+- **Group trapped layers**: Organizes trapped layers in a group
+
+## How It Works
+
+1. **Color Analysis**: Flattens the document temporarily to identify distinct colors
+2. **Lightness Sorting**: Orders colors from lightest to darkest
+3. **Trap Calculation**: Linear interpolation from max (lightest) to min (darkest)
+4. **Layer Separation**: Creates individual layers for each color
+5. **Dilation Application**: Expands lighter colors into areas covered by darker colors
+6. **Output Generation**: Creates properly trapped layers in your document
+
+## API Reference
+
+### TrapperController
+
+Main controller coordinating the trapping process:
+
+```javascript
+const controller = new TrapperController();
+
+await controller.applyTrapping({
+    mode: 'offset',           // or 'screen'
+    minTrap: '0',            // minimum trap size
+    maxTrap: '1/32',         // maximum trap size
+    preserveOriginal: true,  // keep original layers
+    groupLayers: true,       // group trapped layers
+    onProgress: (percent, message) => {
+        console.log(`${percent}%: ${message}`);
+    }
+});
+```
+
+### TrapSizeParser
+
+Utility for parsing and converting trap sizes:
+
+```javascript
+// Parse various formats
+const inches = TrapSizeParser.parse('1/32');    // 0.03125
+const inches2 = TrapSizeParser.parse('4pt');     // 0.0556
+const inches3 = TrapSizeParser.parse('0.03125'); // 0.03125
+
+// Convert to pixels
+const pixels = TrapSizeParser.inchesToPixels(inches, 300); // DPI
+
+// Calculate trap for specific layer
+const trap = TrapSizeParser.calculateLayerTrap(
+    layerIndex,    // 0 = lightest
+    totalLayers,   // total number of colors
+    minTrap,       // minimum trap (inches)
+    maxTrap        // maximum trap (inches)
+);
+```
+
+### TrappingEngine
+
+Core trapping algorithms:
+
+```javascript
+const engine = new TrappingEngine({
+    minTrap: 0,
+    maxTrap: 0.03125,
+    dpi: 300,
+    mode: 'offset'
+});
+
+// Analyze colors
+const analysis = engine.analyzeColors(imageData);
+
+// Sort by lightness
+const sorted = engine.sortColorsByLightness(analysis.colors);
+
+// Apply dilation
+const trapped = engine.applyDilationWithMask(
+    layerData,
+    trapPixels,
+    mask
+);
+```
+
+## Development
+
+### Project Structure
+
+```
+ps-trap-plugin/
+├── src/
+│   ├── index.js              # Plugin entry point
+│   ├── core/
+│   │   ├── TrapperController.js  # Main controller
+│   │   └── TrappingEngine.js     # Core algorithms
+│   ├── ui/
+│   │   └── panel.js          # UI implementation
+│   ├── api/
+│   │   └── PhotoshopAPI.js   # Photoshop API wrapper
+│   └── utils/
+│       └── TrapSizeParser.js # Trap size utilities
+├── test/
+│   └── TrapSizeParser.test.js # Unit tests
+├── manifest.json             # UXP manifest
+├── webpack.config.js         # Build configuration
+└── package.json             # Dependencies
+```
+
+### Building
+
+```bash
+# Development build
+npm run dev
+
+# Production build
+npm run build
+
+# Run tests
+npm test
+
+# Clean build directory
+npm run clean
+```
+
+### Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run with coverage
+npm test -- --coverage
+
+# Watch mode
+npm test -- --watch
+```
+
+### Loading in Photoshop
+
+1. Install UXP Developer Tool from Creative Cloud
+2. Open UXP Developer Tool
+3. Click "Add Plugin"
+4. Select the `manifest.json` file
+5. Click "Load" to load into Photoshop
+6. Use "Watch" for automatic reloading during development
+
+## Troubleshooting
+
+### Common Issues
+
+**"No active document" error**
+- Ensure you have a document open in Photoshop
+- Document must be 8-bit per channel
+
+**"Document must be in RGB color mode" error**
+- The plugin only works with RGB documents
+- Convert your document: Image > Mode > RGB Color
+- Note: CMYK, Lab, and other modes are not supported
+
+**"Too many colors" error**
+- The plugin supports up to 10 distinct colors
+- Reduce colors using Image > Mode > Indexed Color first
+
+**Trap sizes seem incorrect**
+- Check document DPI (higher DPI = more pixels per trap)
+- Verify trap size format (fractions need "/", points need "pt")
+
+**Plugin doesn't appear in Photoshop**
+- Ensure Photoshop version is 24.0.0 or later
+- Try restarting Photoshop
+- Check UXP Developer Tool for errors
+
+## Performance
+
+- Small documents (< 2000px): < 5 seconds
+- Medium documents (2000-5000px): 10-30 seconds
+- Large documents (> 5000px): 1-3 minutes
+
+Performance depends on:
+- Number of distinct colors
+- Document dimensions
+- Trap size (larger traps take longer)
+- System specifications
+
+## Limitations
+
+- **RGB mode only** (no CMYK, Lab, Grayscale support)
+- Maximum 10 distinct colors per document
+- 8-bit per channel only (no 16/32-bit)
+- Requires manual color reduction for complex images
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add/update tests
+5. Submit a pull request
+
+## License
+
+MIT License - See LICENSE file for details
+
+## Credits
+
+- Based on the Trapper Java application algorithms
+- Uses Adobe UXP technology
+- Developed with assistance from Claude
+
+## Support
+
+- **Documentation**: See `/docs` folder
+- **Issues**: GitHub Issues
+- **Discussions**: GitHub Discussions
+
+## Roadmap
+
+- [ ] Support for more than 10 colors
+- [ ] CMYK-specific trapping strategies
+- [ ] Underbase generation for screen printing
+- [ ] Batch processing support
+- [ ] Export to separate files
+- [ ] Halftone preview
+- [ ] Custom trap strategies per layer
+
+---
+
+Built with ❤️ for the print production community

@@ -1,6 +1,12 @@
-# Trapper - Photoshop Color Trapping Plugin
+# Trapper for Photoshop
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Adobe Photoshop](https://img.shields.io/badge/Adobe%20Photoshop-2024+-31A8FF?logo=adobe-photoshop)](https://www.adobe.com/products/photoshop.html)
+[![UXP](https://img.shields.io/badge/UXP-5.0-FF61F6)](https://developer.adobe.com/photoshop/uxp/)
 
 A professional UXP plugin for Adobe Photoshop that provides automated color trapping for print production. Supports both offset lithography and screen printing workflows.
+
+> **Note:** This is a follow-on port of the [Trapper Java application](https://github.com/electrosaur-labs/trapper), bringing the same color trapping algorithms directly into Photoshop as a native plugin.
 
 ## Features
 
@@ -31,8 +37,8 @@ A professional UXP plugin for Adobe Photoshop that provides automated color trap
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourorg/ps-trap-plugin.git
-cd ps-trap-plugin
+git clone https://github.com/electrosaur-labs/trapper-photoshop.git
+cd trapper-photoshop
 
 # Install dependencies
 npm install
@@ -154,14 +160,13 @@ const trapped = engine.applyDilationWithMask(
 ### Project Structure
 
 ```
-ps-trap-plugin/
+trapper-photoshop/
 ├── src/
 │   ├── index.js              # Plugin entry point
+│   ├── index.html            # Modal dialog UI
 │   ├── core/
 │   │   ├── TrapperController.js  # Main controller
 │   │   └── TrappingEngine.js     # Core algorithms
-│   ├── ui/
-│   │   └── panel.js          # UI implementation
 │   ├── api/
 │   │   └── PhotoshopAPI.js   # Photoshop API wrapper
 │   └── utils/
@@ -170,7 +175,7 @@ ps-trap-plugin/
 │   └── TrapSizeParser.test.js # Unit tests
 ├── manifest.json             # UXP manifest
 ├── webpack.config.js         # Build configuration
-└── package.json             # Dependencies
+└── package.json              # Dependencies
 ```
 
 ### Building
@@ -256,15 +261,22 @@ Performance depends on:
 - 8-bit per channel only (no 16/32-bit)
 - Requires manual color reduction for complex images
 
+## Related Projects
+
+- **[Trapper (Java)](https://github.com/electrosaur-labs/trapper)** - Original standalone desktop application for PSD color trapping
+
 ## Contributing
 
-Contributions are welcome! Please:
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
+Quick start:
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Add/update tests
-5. Submit a pull request
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
 ## License
 
@@ -272,15 +284,16 @@ MIT License - See LICENSE file for details
 
 ## Credits
 
-- Based on the Trapper Java application algorithms
+- Based on the [Trapper Java application](https://github.com/electrosaur-labs/trapper) algorithms
 - Uses Adobe UXP technology
-- Developed with assistance from Claude
+- Built by the Electrosaur Labs team
 
 ## Support
 
-- **Documentation**: See `/docs` folder
-- **Issues**: GitHub Issues
-- **Discussions**: GitHub Discussions
+- **Documentation**: See this README and inline code documentation
+- **Issues**: [GitHub Issues](https://github.com/electrosaur-labs/trapper-photoshop/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/electrosaur-labs/trapper-photoshop/discussions)
+- **Parent Project**: [Trapper Java Application](https://github.com/electrosaur-labs/trapper)
 
 ## Roadmap
 

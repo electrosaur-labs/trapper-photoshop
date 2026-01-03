@@ -1,7 +1,7 @@
 {
-  "name": "ps-trap-plugin",
+  "name": "trapper-photoshop",
   "version": "1.0.0",
-  "description": "Photoshop UXP plugin for professional color trapping in print production",
+  "description": "Adobe Photoshop UXP plugin for professional color trapping in print production",
   "main": "dist/index.js",
   "scripts": {
     "build": "webpack --mode production",
@@ -18,10 +18,21 @@
     "print",
     "prepress",
     "offset",
-    "screen-printing"
+    "screen-printing",
+    "adobe",
+    "trapping",
+    "lithography"
   ],
-  "author": "Trapper Team",
+  "author": "Electrosaur",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/electrosaur-labs/trapper-photoshop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/electrosaur-labs/trapper-photoshop/issues"
+  },
+  "homepage": "https://github.com/electrosaur-labs/trapper-photoshop#readme",
   "devDependencies": {
     "webpack": "^5.89.0",
     "webpack-cli": "^5.1.4",

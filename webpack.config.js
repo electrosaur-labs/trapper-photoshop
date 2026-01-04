@@ -1,9 +1,21 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack');
+const crypto = require('crypto');
 
 module.exports = (env, argv) => {
     const mode = argv.mode || 'development';
     const isProduction = mode === 'production';
+
+    // Generate unique build ID on every build
+    const buildId = crypto.randomUUID();
+    const buildTime = new Date().toISOString();
+
+    console.log('==========================================');
+    console.log('Building Trapper Plugin');
+    console.log(`Build ID: ${buildId}`);
+    console.log(`Build Time: ${buildTime}`);
+    console.log('==========================================');
 
     return {
         mode: mode,
@@ -33,6 +45,10 @@ module.exports = (env, argv) => {
             ]
         },
         plugins: [
+            new webpack.DefinePlugin({
+                '__BUILD_ID__': JSON.stringify(buildId),
+                '__BUILD_TIME__': JSON.stringify(buildTime)
+            }),
             new CopyPlugin({
                 patterns: [
                     {

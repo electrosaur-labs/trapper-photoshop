@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+</head>
+<body>
+    <dialog id="simpleDialog">
+        <h2>Hello from UXP!</h2>
+        <p>If you see this, the plugin loaded successfully.</p>
+        <button id="closeBtn">Close</button>
+    </dialog>
+
+    <script>
+        const { entrypoints } = require('uxp');
+
+        async function showDialog() {
+            const dialog = document.getElementById('simpleDialog');
+            await dialog.showModal();
+        }
+
+        document.getElementById('closeBtn').addEventListener('click', () => {
+            document.getElementById('simpleDialog').close();
+        });
+
+        entrypoints.setup({
+            commands: {
+                'simple.show': showDialog
+            }
+        });
+    </script>
+</body>
+</html>

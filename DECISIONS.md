@@ -92,17 +92,203 @@ This document records important design decisions made during the development of 
 
 **Implementation:** `applyDilationWithMask()` in TrappingEngine.js (lines 107-177)
 
-## 8. Document Persistence Strategy
+## 8. Pre-Flight Validation: Single Unlocked Layer Requirement
 
-**Decision:** Create a duplicated document for color separation, leave original unchanged.
+**Decision:** Require exactly 1 unlocked layer before opening the plugin dialog. If this requirement is not met, show an error message and do not open the dialog.
 
 **Rationale:**
-- Non-destructive workflow - original remains untouched
-- User can compare original with separated version
-- Allows multiple attempts with different trap settings
-- Follows standard Photoshop plugin best practices
+- **Simplicity:** Eliminates all complexity around flattening, merging, smart objects, locked layers, etc.
+- **User Control:** Puts the onus on the user and Photoshop to prepare the document correctly
+- **Avoids Artifacts:** No risk of compositing artifacts from automated flatten/merge operations
+- **Clear Expectations:** User knows exactly what state the document must be in
+- **Fail Fast:** Validation happens before any operations begin, preventing mid-operation failures
+- **No Modal Conflicts:** User can prepare document without being blocked by modal dialog
 
-**Implementation:** Line 154 in TrapperController.js
+**Error Message Example:**
+```
+Document has 3 layer(s) total (2 unlocked, 1 locked).
+
+Color trapping requires exactly 1 unlocked layer.
+
+Please prepare your document first:
+1. Flatten or merge all layers (Layer > Flatten Image)
+2. Rasterize any smart objects (Layer > Rasterize)
+3. Ensure you have only 1 unlocked layer
+
+This ensures clean, predictable color separation.
+```
+
+**Implementation:**
+- `checkDocumentValidity()` in TrapperController.js (lines 33-100)
+- Called before showing dialog in src/index.js (line 43)
+- Plugin dialog never opens if validation fails
+
+**Benefits Over Previous Flatten Approach:**
+- No `flattenDocument()` method needed
+- No `mergeVisible` compositing issues
+- No smart object rasterization code
+- No hidden layer handling
+- No locked layer mid-operation failures
+- Smaller, simpler codebase (~8KB smaller bundle)
+
+## 9. RGB Color Mode Only (No CMYK Support)
+
+**Decision:** Only support RGB color mode. Do not support CMYK, Lab, Grayscale, or Indexed color modes.
+
+**Rationale:**
+
+**Why RGB works for this use case:**
+- Plugin targets **spot color printing** workflows (screen printing, simple offset, posters)
+- Each distinct RGB color represents a separate printing plate/screen
+- Simpler trapping model: lighter colors spread under darker colors based on overall lightness
+- Matches the original Java application's design philosophy
+
+**Why CMYK is fundamentally different:**
+- CMYK trapping operates at the **channel level**, not color level
+- Each channel (C, M, Y, K) represents a physical printing plate
+- Trapping only applies to channels that differ between adjacent colors
+- **Common ink optimization**: Colors sharing ink channels (e.g., Red=M+Y and Orange=M+Y both share Magenta) get natural registration - only non-common channels need trapping
+- Requires per-pixel CMYK comparison with neighbors
+- Much more complex algorithm with selective per-channel trapping
+
+**Implementation complexity for CMYK:**
+1. Channel-level analysis instead of color-level separation
+2. Per-pixel neighbor comparison to identify differing channels
+3. Calculate common ink percentages between adjacent colors
+4. Apply different trap directions/amounts per channel at same boundary
+5. Handle gradients, blends, and varying ink densities
+
+**Conclusion:** CMYK process color printing requires professional prepress software (Adobe InDesign, Esko DeskPack) with sophisticated CMYK trapping engines. This plugin's RGB approach is optimal for spot color work where each color is a discrete printing element.
+
+**For users needing CMYK:** Use professional prepress tools designed for process color trapping.
+
+## 10. Full Document Bounds for Flattened Layer Reading
+
+**Decision:** Always read flattened layer pixels using full document bounds, not layer's natural bounds.
+
+**Problem:** When documents contained smart objects, layers would shift leftwards after trapping (all layers except black). This happened because:
+1. Smart objects, when flattened, can create layers with bounds that don't start at (0,0)
+2. `getLayerPixels()` reads pixels based on layer's natural bounds (which might be offset)
+3. We assumed the pixel data started at (0,0) and wrote it back to (0,0)
+4. Result: Pixels were read from offset bounds but written to (0,0), causing the shift
+
+**Solution:** Created `getLayerPixelsFullDocument()` method that:
+- Explicitly requests pixels for the full document bounds (0,0 to width,height)
+- Uses `sourceBounds` parameter in `imaging.getPixels()`
+- Ensures pixel data always represents the full document coordinate space
+- Used when reading the flattened layer for color analysis
+
+**Implementation:**
+- `getLayerPixelsFullDocument()` in PhotoshopAPI.js (line 143)
+- Used in TrapperController.js when reading flattened layer (line 187)
+
+## 11. Dialog State Reset and Event Listener Management
+
+**Decision:** Reset dialog UI state every time the dialog opens, and only attach event listeners once.
+
+**Problems:**
+1. **Disabled button:** After a successful trapping operation, the "Apply Trapping" button remained disabled on subsequent openings because:
+   - `showProgress()` disables buttons during processing
+   - On success, the dialog closes without calling `hideProgress()`
+   - Dialog DOM persists between openings (UXP behavior)
+   - Button's `disabled` attribute remained from previous run
+
+2. **Duplicate event handlers:** Multiple error dialogs appeared on 2nd/3rd runs saying "Trapping is already in progress" because:
+   - `setupDialogEventListeners()` was called every time the dialog opened
+   - Event listeners were added multiple times without removing old ones
+   - Clicking "Apply" triggered all accumulated handlers
+   - First handler set `isProcessing = true`, subsequent handlers immediately threw error
+   - But first handler continued and completed successfully (output file created)
+
+**Solution:**
+1. Call `resetDialogState()` to re-enable buttons and reset progress UI
+2. Use `listenersAttached` flag to prevent attaching duplicate event listeners
+3. Only set up event listeners once on first dialog show
+
+**Implementation:**
+- `resetDialogState()` function in src/index.js (line 119)
+- `listenersAttached` flag check in `setupDialogEventListeners()` (line 86)
+- Called from `setupDialogEventListeners()` every time dialog opens (line 83)
+
+## 12. Pre-Flight Validation Replaces Runtime Flatten (Supersedes Decision #15)
+
+**Previous Approach (Decisions #12, #14, #15):** Plugin attempted to flatten documents at runtime, which led to:
+- Complex two-phase architecture (flatten outside modal, trap inside modal)
+- Silent flatten failures on already-trapped documents
+- Compositing artifacts (violet streaks) from `mergeVisible`
+- Smart object rasterization complexity
+- Hidden layer handling complexity
+- Locked layer mid-operation failures
+
+**Current Approach:** Pre-flight validation requires exactly 1 unlocked layer (see Decision #8).
+
+**Benefits:**
+- No flatten code needed at all
+- No runtime failures from malformed documents
+- User prepares document using Photoshop's native tools (which they understand)
+- Plugin focuses on its core competency: color trapping
+- Simpler, more maintainable codebase
+
+## 13. Color Filtering for Anti-Aliasing Artifacts
+
+**Decision:** Filter out colors with very few pixels before creating layers.
+
+**Rationale:**
+- Smart objects and some layer effects can introduce anti-aliasing artifacts when flattened
+- These artifacts create spurious colors with only a handful of pixels scattered throughout document
+- Without filtering, these get extracted as separate layers (e.g., gray streaky layer)
+- Filtering prevents creation of unwanted artifact layers
+
+**Implementation:**
+- Lines 199-215 in TrapperController.js
+- Minimum threshold: 0.01% of total pixels, or 100 pixels (whichever is greater)
+- Example: 570×390 image (222,300 pixels) requires ≥223 pixels minimum
+- Colors below threshold are logged but not extracted into layers
+
+**Trade-off:** Legitimate colors that occupy very small areas (<0.01%) will be filtered out. For typical spot color print work, this is acceptable as such small color areas are usually artifacts or noise.
+
+## 14. Source Layer Deletion Using Stored ID
+
+**Decision:** Store the source layer's ID before processing, then use that ID to find and delete it afterward.
+
+**Rationale:**
+- After creating color-separated layers, we need to delete the original source layer
+- Layer ID is stable and unique throughout the operation
+- More reliable than name-based matching
+
+**Implementation:** Lines 236, 325-331 in TrapperController.js
+
+## 15. Error Rollback Using History Suspension (Supersedes Previous Decisions)
+
+**Decision:** On error, do NOT call `resumeHistory()`, which causes Photoshop to automatically roll back all suspended changes.
+
+**Rationale:**
+- `suspendHistory()` creates a transactional boundary
+- Calling `resumeHistory()` commits all changes as one undo entry
+- NOT calling `resumeHistory()` discards all suspended changes (automatic rollback)
+- Nothing appears in undo history on error
+- Document returns to pre-operation state
+
+**Implementation:**
+```javascript
+try {
+    trappingResult = await controller.applyTrapping({...});
+    // SUCCESS: Resume history to commit changes
+    await executionContext.hostControl.resumeHistory(suspensionID);
+} catch (error) {
+    // ERROR: Don't resume history - changes are automatically discarded
+    // Document rolls back to pre-operation state
+    throw error;
+}
+```
+
+**Benefits:**
+- Transactional behavior: all-or-nothing
+- No partial state changes in document
+- No undo history pollution on errors
+- Clean user experience
+
+**Implementation:** Lines 179-204 in src/index.js
 
 ## Known Issues
 

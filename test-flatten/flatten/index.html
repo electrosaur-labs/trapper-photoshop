@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #log {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <dialog id="testDialog">
+        <h2>Flatten Test Plugin</h2>
+        <p>Open a multi-layer document, then click the buttons to test different flatten approaches.</p>
+
+        <button id="testNativeFlat">Test: Native app.activeDocument.flatten()</button>
+        <button id="testBatchPlayFlat">Test: batchPlay flattenImage</button>
+        <button id="testBatchPlayMerge">Test: batchPlay mergeLayersNew</button>
+        <button id="clearLog">Clear Log</button>
+        <button id="closeButton">Close</button>
+
+        <div id="log"></div>
+    </dialog>
+
+    <script src="index.js"></script>
+</body>
+</html>

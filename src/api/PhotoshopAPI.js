@@ -8,10 +8,10 @@ const { imaging } = require('photoshop');
 
 class PhotoshopAPI {
     constructor() {
-        this.batchPlayOptions = {
-            synchronousExecution: true,
-            modalBehavior: 'execute'
-        };
+        // Use completely empty options for batchPlay since all operations happen inside executeAsModal
+        // When inside executeAsModal, batchPlay must receive {} (no options at all) to group
+        // all operations into a single history entry
+        this.batchPlayOptions = {};
     }
 
     /**
@@ -131,6 +131,67 @@ class PhotoshopAPI {
 
         traverse(document.layers);
         return layers;
+    }
+
+    /**
+     * Get pixel data from a layer at full document size
+     * Forces reading pixels for the entire document bounds, not just layer bounds
+     * @param {Layer} layer - Photoshop layer
+     * @param {Document} document - Parent document (for getting full dimensions)
+     * @returns {Promise<Object>} - Pixel data in ImageData-like format (full document size)
+     */
+    async getLayerPixelsFullDocument(layer, document) {
+        console.log(`getLayerPixelsFullDocument: Getting full document pixels for layer "${layer.name}"`);
+
+        const width = document.width;
+        const height = document.height;
+
+        console.log(`getLayerPixelsFullDocument: Document dimensions: ${width}x${height}`);
+
+        // Use imaging.getPixels API with explicit source bounds = full document
+        try {
+            const docId = document.id;
+
+            const options = {
+                documentID: docId,
+                layerID: layer.id,
+                // Explicitly request full document bounds
+                sourceBounds: {
+                    top: 0,
+                    left: 0,
+                    bottom: height,
+                    right: width
+                }
+            };
+
+            const pixelData = await imaging.getPixels(options);
+
+            let pixelArray;
+            if (pixelData.pixels) {
+                pixelArray = pixelData.pixels;
+            } else if (pixelData.imageData) {
+                const imageData = pixelData.imageData;
+                pixelArray = await imageData.getData({ chunky: true });
+                if (imageData.dispose) {
+                    imageData.dispose();
+                }
+            } else {
+                throw new Error('imaging.getPixels() returned object without pixels or imageData property');
+            }
+
+            const rgbaData = new Uint8ClampedArray(pixelArray);
+            console.log(`getLayerPixelsFullDocument: Got ${rgbaData.length} bytes (${width}x${height}x4 = ${width * height * 4} expected)`);
+
+            return {
+                width: width,
+                height: height,
+                data: rgbaData
+            };
+
+        } catch (error) {
+            console.error('getLayerPixelsFullDocument: Failed:', error);
+            throw new Error(`Cannot read full document pixels from layer "${layer.name}": ${error.message}`);
+        }
     }
 
     /**
@@ -290,6 +351,7 @@ class PhotoshopAPI {
 
             // Prepare putPixels options
             const putPixelsOptions = {
+                documentID: docId,  // Explicitly specify document context
                 layerID: layer.id,
                 imageData: psImageData,
                 replace: true
@@ -650,31 +712,6 @@ class PhotoshopAPI {
         return duplicatedDoc;
     }
 
-    /**
-     * Flatten a document
-     * @param {Document} document - Document to flatten
-     * @returns {Promise<void>}
-     */
-    async flattenDocument(document) {
-        console.log(`flattenDocument: Flattening "${document.title}"`);
-
-        // Make sure the document is active
-        await action.batchPlay([
-            {
-                _obj: 'select',
-                _target: [{ _ref: 'document', _id: document.id }]
-            }
-        ], this.batchPlayOptions);
-
-        // Flatten it
-        await action.batchPlay([
-            {
-                _obj: 'flattenImage'
-            }
-        ], this.batchPlayOptions);
-
-        console.log('flattenDocument: Complete');
-    }
 
     /**
      * Make a document active

@@ -1,0 +1,16 @@
+{
+  "id": "test.simple",
+  "name": "Simple Test",
+  "version": "1.0.0",
+  "main": "simple.html",
+  "host": [{
+    "app": "PS",
+    "minVersion": "23.0.0"
+  }],
+  "manifestVersion": 5,
+  "entrypoints": [{
+    "type": "command",
+    "id": "simple.show",
+    "label": {"default": "Simple Test"}
+  }]
+}

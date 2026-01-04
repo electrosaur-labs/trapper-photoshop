@@ -4,6 +4,7 @@
  * Coordinates between UI, Photoshop API, and trapping engine
  */
 
+const { app, action } = require('photoshop');
 const PhotoshopAPI = require('../api/PhotoshopAPI');
 const TrappingEngine = require('./TrappingEngine');
 const TrapSizeParser = require('../utils/TrapSizeParser');
@@ -58,6 +59,35 @@ class TrapperController {
                 };
             }
 
+            // Check for exactly 1 unlocked layer
+            const unlockedLayers = document.layers.filter(layer => !layer.locked);
+            if (unlockedLayers.length === 0) {
+                return {
+                    isValid: false,
+                    reason: 'All layers are locked.\n\nPlease unlock at least one layer before applying color trapping.'
+                };
+            }
+
+            if (unlockedLayers.length > 1 || document.layers.length > 1) {
+                const lockedCount = document.layers.length - unlockedLayers.length;
+                let message = `Document has ${document.layers.length} layer(s) total`;
+                if (lockedCount > 0) {
+                    message += ` (${unlockedLayers.length} unlocked, ${lockedCount} locked)`;
+                }
+                message += '.\n\n';
+                message += 'Color trapping requires exactly 1 unlocked layer.\n\n';
+                message += 'Please prepare your document first:\n';
+                message += '1. Flatten or merge all layers (Layer > Flatten Image)\n';
+                message += '2. Rasterize any smart objects (Layer > Rasterize)\n';
+                message += '3. Ensure you have only 1 unlocked layer\n\n';
+                message += 'This ensures clean, predictable color separation.';
+
+                return {
+                    isValid: false,
+                    reason: message
+                };
+            }
+
             return {
                 isValid: true,
                 docInfo: docInfo
@@ -70,8 +100,18 @@ class TrapperController {
         }
     }
 
+
     /**
      * Apply trapping to the active document
+     *
+     * Modifies the active document in place (no backup created).
+     * User is responsible for making their own backups before running the plugin.
+     *
+     * Workflow:
+     * 1. Flatten the active document
+     * 2. Analyze colors and create separated layers
+     * 3. Apply trapping to each layer
+     *
      * @param {Object} options - Trapping options
      * @returns {Promise<void>}
      */
@@ -83,16 +123,32 @@ class TrapperController {
         this.isProcessing = true;
 
         try {
-            // Get active document
-            const document = await this.psApi.getActiveDocument();
-            if (!document) {
-                throw new Error('No active document');
+            // Log build information for debugging
+            console.log('==========================================');
+            console.log('TRAPPER PLUGIN STARTING');
+            console.log(`Build ID: ${typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'unknown'}`);
+            console.log(`Build Time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`);
+            console.log('==========================================');
+
+            // Source document and output name provided by caller
+            const sourceDocument = options.sourceDocument;
+            const outputName = options.outputName;
+
+            if (!sourceDocument) {
+                throw new Error('No source document provided');
             }
+
+            // At this point, document should have exactly 1 unlocked layer
+            // (validated in checkDocumentValidity before dialog was shown)
+            console.log(`Processing document: "${sourceDocument.title}"`);
+            console.log(`Document has ${sourceDocument.layers.length} layer(s)`);
 
             // Report progress
             if (options.onProgress) {
                 options.onProgress(5, 'Analyzing document...');
             }
+
+            const document = sourceDocument;
 
             // Get document properties
             const docInfo = await this.psApi.getDocumentInfo(document);
@@ -114,29 +170,6 @@ class TrapperController {
             console.log(`Trap range: ${trapSizes.min}" to ${trapSizes.max}"`);
             console.log(`Trap pixels: ${minTrapPixels}px to ${maxTrapPixels}px at ${docInfo.resolution} DPI`);
 
-            // Report progress
-            if (options.onProgress) {
-                options.onProgress(10, 'Checking layers...');
-            }
-
-            // Get layers and check for hidden layers
-            const layers = await this.psApi.getLayers(document);
-            console.log(`Found ${layers.length} layers`);
-
-            // Check for hidden layers
-            const hiddenLayers = layers.filter(layer => !layer.visible);
-            if (hiddenLayers.length > 0) {
-                console.warn(`Found ${hiddenLayers.length} hidden layers that will be ignored`);
-
-                // If callback provided, ask user to confirm
-                if (options.onHiddenLayers) {
-                    const proceed = await options.onHiddenLayers(hiddenLayers.length);
-                    if (!proceed) {
-                        throw new Error('Operation cancelled by user');
-                    }
-                }
-            }
-
             // Create trapping engine
             this.engine = new TrappingEngine({
                 minTrap: trapSizes.min,
@@ -147,52 +180,56 @@ class TrapperController {
 
             // Report progress
             if (options.onProgress) {
-                options.onProgress(15, 'Creating working document...');
+                options.onProgress(10, 'Analyzing colors...');
             }
 
-            // Duplicate the original document for color separation
-            const workingDoc = await this.psApi.duplicateDocument(document, `${docInfo.name} - Color Separated`);
-            console.log('Created working document:', workingDoc.title);
-
-            // Flatten the working document
-            await this.psApi.flattenDocument(workingDoc);
-            console.log('Working document flattened');
-
-            // Report progress
-            if (options.onProgress) {
-                options.onProgress(20, 'Analyzing colors...');
+            // Get the single unlocked layer
+            const sourceLayer = document.layers.find(layer => !layer.locked);
+            if (!sourceLayer) {
+                throw new Error('No unlocked layer found (document structure changed?)');
             }
 
-            // Get pixel data from the flattened working document to analyze colors
-            // IMPORTANT: Get fresh reference to active document after flattening
-            const currentDoc = await this.psApi.getActiveDocument();
-            console.log(`Current document after flattening: "${currentDoc.title}", id: ${currentDoc.id}, layers: ${currentDoc.layers.length}`);
-
-            const flattenedLayer = currentDoc.layers[currentDoc.layers.length - 1];
-            console.log(`Flattened layer type check:`, {
-                name: flattenedLayer.name,
-                id: flattenedLayer.id,
-                kind: flattenedLayer.kind,
-                isLayer: flattenedLayer.typename === 'Layer' || flattenedLayer.kind === 'pixel',
-                typename: flattenedLayer.typename,
-                hasId: !!flattenedLayer.id,
-                hasBounds: !!flattenedLayer.bounds
+            console.log(`Source layer:`, {
+                name: sourceLayer.name,
+                id: sourceLayer.id,
+                kind: sourceLayer.kind,
+                typename: sourceLayer.typename
             });
 
-            const flattenedData = await this.psApi.getLayerPixels(flattenedLayer);
+            // Use getLayerPixelsFullDocument to ensure we get full document-sized pixel data
+            const flattenedData = await this.psApi.getLayerPixelsFullDocument(sourceLayer, document);
 
             // Count distinct colors
             const colorAnalysis = this.engine.analyzeColors(flattenedData);
-            console.log(`Found ${colorAnalysis.colors.length} distinct colors`);
+            console.log(`Found ${colorAnalysis.colors.length} distinct colors (before filtering)`);
 
-            if (colorAnalysis.colors.length > 10) {
-                throw new Error(`Document has ${colorAnalysis.colors.length} distinct colors, exceeds maximum of 10`);
+            // Log all colors found with pixel counts
+            colorAnalysis.colors.forEach(c => {
+                console.log(`  Color RGB(${c.r},${c.g},${c.b}): ${c.count} pixels`);
+            });
+
+            // Filter out colors with very few pixels (likely anti-aliasing artifacts from smart objects)
+            // Minimum threshold: 0.01% of total pixels (e.g., 100 pixels in a 1000x1000 image)
+            const minPixelThreshold = Math.max(100, Math.round(colorAnalysis.totalPixels * 0.0001));
+            const significantColors = colorAnalysis.colors.filter(c => c.count >= minPixelThreshold);
+
+            console.log(`After filtering (min ${minPixelThreshold} pixels): ${significantColors.length} distinct colors`);
+            significantColors.forEach(c => {
+                console.log(`  Color RGB(${c.r},${c.g},${c.b}): ${c.count} pixels`);
+            });
+
+            if (significantColors.length > 10) {
+                throw new Error(`Document has ${significantColors.length} distinct colors (after filtering anti-aliasing), exceeds maximum of 10`);
+            }
+
+            if (significantColors.length === 0) {
+                throw new Error('No significant colors found in document');
             }
 
             // Sort colors by lightness FIRST (lightest to darkest)
             // We create layers in this order, and since new layers go on TOP,
             // the final stack will be: lightest on bottom, darkest on top (correct for printing)
-            const sortedColors = colorAnalysis.colors.sort((a, b) => b.lightness - a.lightness);
+            const sortedColors = significantColors.sort((a, b) => b.lightness - a.lightness);
             console.log('Colors sorted lightest to darkest (creation order):', sortedColors.map(c => `RGB(${c.r},${c.g},${c.b}) L=${Math.round(c.lightness)}`));
 
             // Create one layer per color by manually extracting pixels using imaging API
@@ -219,7 +256,7 @@ class TrapperController {
                 console.log(`Extracted ${colorPixels.width}x${colorPixels.height} pixels for ${colorStr}`);
 
                 // Create a new empty layer
-                const layer = await this.psApi.createLayer(currentDoc, `Color - ${colorStr}`);
+                const layer = await this.psApi.createLayer(document, `Color - ${colorStr}`);
                 console.log(`Created empty layer: "${layer.name}" (id: ${layer.id})`);
 
                 // Write the color-specific pixels to the layer
@@ -236,27 +273,27 @@ class TrapperController {
                 });
             }
 
-            // Delete the original flattened layer since we have all colors separated
-            const finalDoc = await this.psApi.getActiveDocument();
-            const flattenedLayerToDelete = finalDoc.layers[finalDoc.layers.length - 1];
-            if (flattenedLayerToDelete && flattenedLayerToDelete.name.includes('Layer')) {
-                console.log(`Deleting source flattened layer "${flattenedLayerToDelete.name}"`);
-                await flattenedLayerToDelete.delete();
+            // Delete the source layer since we have all colors separated
+            const sourceLayerToDelete = document.layers.find(l => l.id === sourceLayer.id);
+            if (sourceLayerToDelete) {
+                console.log(`Deleting source layer "${sourceLayerToDelete.name}" (id: ${sourceLayer.id})`);
+                await sourceLayerToDelete.delete();
+            } else {
+                console.warn(`Could not find source layer with id ${sourceLayer.id} to delete`);
             }
 
-            // Use the current document (which is the working document after flattening)
-            const separatedDocument = currentDoc;
+            // The source document (now modified in place) contains the separated/trapped layers
+            const separatedDocument = document;
 
             // No need to sort or reorder - layers were created in correct order already
             // colorLayers is already sorted lightest to darkest (creation order)
             console.log('Layers created in order (lightest to darkest):', colorLayers.map(cl => `RGB(${cl.color.r},${cl.color.g},${cl.color.b}) L=${Math.round(cl.lightness)}`));
 
             // Verify final layer order
-            const verifyDoc = await this.psApi.getActiveDocument();
             console.log('Verifying layer stack (Photoshop order, index 0 = top):');
             console.log('Expected: Darkest on top [0], Lightest on bottom [last]');
-            for (let i = 0; i < verifyDoc.layers.length; i++) {
-                console.log(`  [${i}] ${verifyDoc.layers[i].name}`);
+            for (let i = 0; i < document.layers.length; i++) {
+                console.log(`  [${i}] ${document.layers[i].name}`);
             }
 
             // Report progress
@@ -327,7 +364,9 @@ class TrapperController {
 
             console.log('Trapping complete!');
 
-            // Return the separated document ID
+            // Return the trapped document (original, now modified)
+            // The backup document (with " copy" suffix) preserves the original state
+            // Workflow: Copy (backup) → Modify Original (flatten, separate, trap)
             return {
                 documentId: separatedDocument.id,
                 documentTitle: separatedDocument.title
@@ -336,6 +375,25 @@ class TrapperController {
         } finally {
             this.isProcessing = false;
         }
+    }
+
+    /**
+     * Create trapped document name from original name
+     * Converts "x.y" to "x-trapped.y" or "x" to "x-trapped"
+     * @param {string} originalName - Original document name
+     * @returns {string} - Trapped document name
+     */
+    createTrappedDocumentName(originalName) {
+        const lastDotIndex = originalName.lastIndexOf('.');
+
+        if (lastDotIndex === -1 || lastDotIndex === 0) {
+            // No extension or starts with dot (like ".hidden")
+            return `${originalName}-trapped`;
+        }
+
+        const basename = originalName.substring(0, lastDotIndex);
+        const extension = originalName.substring(lastDotIndex);
+        return `${basename}-trapped${extension}`;
     }
 
     /**
@@ -524,6 +582,86 @@ class TrapperController {
             height: height,
             data: maskData
         };
+    }
+
+    /**
+     * Force Photoshop display refresh by switching documents
+     * Fixes bug where closing plugin dialog shows only 1 layer instead of all layers
+     * @param {Document} targetDocument - Document to return to after refresh
+     */
+    async forceDisplayRefresh(targetDocument) {
+        try {
+            const allDocs = app.documents;
+            console.log(`forceDisplayRefresh: ${allDocs.length} open documents`);
+
+            // Find another document (preferably the source document)
+            const otherDoc = allDocs.find(doc => doc.id !== targetDocument.id);
+
+            if (otherDoc) {
+                // Switch to other document
+                console.log(`Switching to "${otherDoc.title}" for refresh...`);
+                await action.batchPlay([{
+                    _obj: 'select',
+                    _target: [{ _ref: 'document', _id: otherDoc.id }]
+                }], {});
+
+                // Small delay
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Switch back
+                console.log(`Switching back to "${targetDocument.title}"...`);
+                await action.batchPlay([{
+                    _obj: 'select',
+                    _target: [{ _ref: 'document', _id: targetDocument.id }]
+                }], {});
+
+                console.log('Display refresh complete (switched documents)');
+            } else {
+                // No other document - create a temporary one
+                console.log('No other document available, creating temporary document...');
+
+                // Create tiny temporary document
+                await action.batchPlay([{
+                    _obj: 'make',
+                    _target: [{ _ref: 'document' }],
+                    documentPreset: {
+                        _obj: 'documentPreset',
+                        width: { _unit: 'pixelsUnit', _value: 100 },
+                        height: { _unit: 'pixelsUnit', _value: 100 },
+                        resolution: { _unit: 'densityUnit', _value: 72 },
+                        mode: { _enum: 'newDocumentMode', _value: 'RGBColorMode' },
+                        fill: { _enum: 'fill', _value: 'white' },
+                        name: 'Temp'
+                    }
+                }], {});
+
+                const tempDoc = app.activeDocument;
+                console.log(`Created temp document: "${tempDoc.title}" (id: ${tempDoc.id})`);
+
+                // Small delay
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Switch back to target
+                console.log(`Switching back to "${targetDocument.title}"...`);
+                await action.batchPlay([{
+                    _obj: 'select',
+                    _target: [{ _ref: 'document', _id: targetDocument.id }]
+                }], {});
+
+                // Close temp document without saving
+                console.log('Closing temporary document...');
+                await action.batchPlay([{
+                    _obj: 'close',
+                    _target: [{ _ref: 'document', _id: tempDoc.id }],
+                    saving: { _enum: 'yesNo', _value: 'no' }
+                }], {});
+
+                console.log('Display refresh complete (used temp document)');
+            }
+        } catch (error) {
+            console.warn('Display refresh failed (non-fatal):', error.message);
+            // Don't throw - this is a cosmetic fix, shouldn't fail the entire operation
+        }
     }
 
 }

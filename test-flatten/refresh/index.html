@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #log {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <dialog id="testDialog">
+        <h2>Display Refresh Test Plugin</h2>
+        <p>This plugin creates 5 layers, then tests different ways to force Photoshop to refresh the display.</p>
+
+        <button id="testCreateLayers">Step 1: Create 5 Layers</button>
+        <hr>
+        <button id="testRefresh1">Test: Switch documents and back</button>
+        <button id="testRefresh2">Test: Make each layer active</button>
+        <button id="testRefresh3">Test: Select all layers</button>
+        <button id="testRefresh4">Test: Collapse/expand layers panel</button>
+        <button id="testRefresh5">Test: Toggle layer visibility</button>
+        <hr>
+        <button id="clearLog">Clear Log</button>
+        <button id="closeButton">Close</button>
+
+        <div id="log"></div>
+    </dialog>
+
+    <script src="index.js"></script>
+</body>
+</html>

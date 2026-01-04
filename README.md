@@ -26,12 +26,26 @@ A professional UXP plugin for Adobe Photoshop that provides automated color trap
 
 ## Installation
 
-### For Users
+### For Users (Windows)
 
-1. Download the latest `.ccx` file from releases
-2. Double-click to install in Creative Cloud
+1. Download the latest `.ccx` file from [releases](https://github.com/electrosaur-labs/trapper-photoshop/releases/latest)
+2. Double-click to install via Creative Cloud
 3. Restart Photoshop
-4. Find "Trapper" in Window > Extensions menu
+4. Find "Trapper" at **Window > Extensions > Trapper**
+
+### For Users (Mac)
+
+**⚠️ Note:** Double-clicking .ccx files on Mac may not work reliably.
+
+**Recommended:** Download both the `.ccx` file and `install-mac.sh` script from [releases](https://github.com/electrosaur-labs/trapper-photoshop/releases/latest), then:
+
+```bash
+cd ~/Downloads
+chmod +x install-mac.sh
+./install-mac.sh
+```
+
+See the [release notes](https://github.com/electrosaur-labs/trapper-photoshop/releases/latest) for alternative installation methods.
 
 ### For Developers
 

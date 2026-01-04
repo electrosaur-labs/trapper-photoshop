@@ -4,11 +4,55 @@
 
 ## Installation
 
+### Windows
+
 1. Download `trapper-v1.0.0.ccx` from the release assets below
 2. Close Photoshop if running
-3. Double-click `trapper-v1.0.0.ccx` to install
+3. Double-click `trapper-v1.0.0.ccx` to install via Creative Cloud
 4. Open Photoshop
 5. Find plugin at **Window > Extensions > Trapper**
+
+### Mac
+
+**⚠️ Note:** Double-clicking .ccx files on Mac may not work reliably. Use one of these methods:
+
+#### Method 1: Automated Installation (Recommended)
+
+1. Download both `trapper-v1.0.0.ccx` and `install-mac.sh` from the release assets
+2. Open Terminal and navigate to your Downloads folder:
+   ```bash
+   cd ~/Downloads
+   ```
+3. Make the script executable and run it:
+   ```bash
+   chmod +x install-mac.sh
+   ./install-mac.sh
+   ```
+4. Follow the on-screen prompts
+5. Restart Photoshop
+6. Find plugin at **Window > Extensions > Trapper**
+
+#### Method 2: Manual Installation
+
+1. Download `trapper-v1.0.0.ccx`
+2. Rename to `.zip` and extract:
+   ```bash
+   unzip trapper-v1.0.0.ccx -d trapper-plugin
+   ```
+3. Copy to Photoshop plugins folder:
+   ```bash
+   # For Photoshop 2024
+   cp -r trapper-plugin ~/Applications/Adobe\ Photoshop\ 2024/Plug-ins/
+   ```
+4. Restart Photoshop
+5. Find plugin at **Window > Extensions > Trapper**
+
+#### Method 3: Command-Line Installation
+
+```bash
+"/Library/Application Support/Adobe/Adobe Desktop Common/UPI/AdobePluginInstallerAgent" \
+  --install "/path/to/trapper-v1.0.0.ccx"
+```
 
 ## Requirements
 

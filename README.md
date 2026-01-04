@@ -1,6 +1,6 @@
 # Trapper for Photoshop
 
-[![License: GPL--3.0](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Adobe Photoshop](https://img.shields.io/badge/Adobe%20Photoshop-2024+-31A8FF?logo=adobe-photoshop)](https://www.adobe.com/products/photoshop.html)
 [![UXP](https://img.shields.io/badge/UXP-5.0-FF61F6)](https://developer.adobe.com/photoshop/uxp/)
 
@@ -57,11 +57,11 @@ npm run dev
 1. **Open a document** in Photoshop (**must be in RGB mode**, 8-bit)
 2. **Open the Trapper panel** from Window > Extensions > Trapper
 3. **Select printing mode**:
-   - **Offset Lithography**: Commercial printing (default: 0-1/32" trapping)
-   - **Screen Printing**: Garment/poster printing (default: 0-4pt trapping)
-4. **Set trap sizes**:
-   - **Min Trap**: Applied to darkest colors (typically 0)
-   - **Max Trap**: Applied to lightest colors (e.g., 1/32" or 4pt)
+   - **Offset Lithography**: Commercial printing (default trap: 1/32")
+   - **Screen Printing**: Garment/poster printing (default trap: 4pt)
+4. **Set maximum trap size** for lightest layer (e.g., 1/32" or 4pt)
+   - Darkest layer always gets 0 trap (defines edges)
+   - Middle layers get linearly interpolated trap amounts
 5. **Click "Apply Trapping"** to process
 
 ### Trap Size Formats
@@ -72,16 +72,11 @@ The plugin accepts trap sizes in multiple formats:
 - **Decimals**: `0.03125`, `0.015625` (inches)
 - **Points**: `2pt`, `4pt`, `6pt` (72 points = 1 inch)
 
-### Options
-
-- **Preserve original layers**: Keeps source layers (hidden) after trapping
-- **Group trapped layers**: Organizes trapped layers in a group
-
 ## How It Works
 
-1. **Color Analysis**: Flattens the document temporarily to identify distinct colors
+1. **Color Analysis**: Analyzes the document to identify distinct colors
 2. **Lightness Sorting**: Orders colors from lightest to darkest
-3. **Trap Calculation**: Linear interpolation from max (lightest) to min (darkest)
+3. **Trap Calculation**: Lightest layer gets maximum trap, darkest gets 0, middle layers linearly interpolated
 4. **Layer Separation**: Creates individual layers for each color
 5. **Dilation Application**: Expands lighter colors into areas covered by darker colors
 6. **Output Generation**: Creates properly trapped layers in your document
@@ -97,10 +92,8 @@ const controller = new TrapperController();
 
 await controller.applyTrapping({
     mode: 'offset',           // or 'screen'
-    minTrap: '0',            // minimum trap size
-    maxTrap: '1/32',         // maximum trap size
-    preserveOriginal: true,  // keep original layers
-    groupLayers: true,       // group trapped layers
+    maxTrap: '1/32',         // maximum trap size (lightest layer)
+                             // darkest layer always gets 0 trap
     onProgress: (percent, message) => {
         console.log(`${percent}%: ${message}`);
     }
@@ -120,12 +113,12 @@ const inches3 = TrapSizeParser.parse('0.03125'); // 0.03125
 // Convert to pixels
 const pixels = TrapSizeParser.inchesToPixels(inches, 300); // DPI
 
-// Calculate trap for specific layer
+// Calculate trap for specific layer (minTrap is always 0)
 const trap = TrapSizeParser.calculateLayerTrap(
     layerIndex,    // 0 = lightest
     totalLayers,   // total number of colors
-    minTrap,       // minimum trap (inches)
-    maxTrap        // maximum trap (inches)
+    0,             // minimum trap (always 0 - darkest layer)
+    maxTrap        // maximum trap (inches - lightest layer)
 );
 ```
 
@@ -135,8 +128,8 @@ Core trapping algorithms:
 
 ```javascript
 const engine = new TrappingEngine({
-    minTrap: 0,
-    maxTrap: 0.03125,
+    minTrap: 0,              // always 0 (darkest layer defines edges)
+    maxTrap: 0.03125,        // maximum trap in inches (lightest layer)
     dpi: 300,
     mode: 'offset'
 });

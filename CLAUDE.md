@@ -122,16 +122,15 @@ src/
 
 ### Processing Workflow
 
-1. **Validate document** (RGB mode, 8-bit required)
-2. **Duplicate document** for color separation (leaves original untouched)
-3. **Flatten using Photoshop API** (`action.batchPlay` with `flattenImage`)
-4. **Analyze colors** in flattened result (extract unique RGB colors)
-5. **Sort colors by lightness** (lightest to darkest)
-6. **Create layers** in sorted order (lightest first → stacks correctly)
-7. **Extract pixels per color** using manual pixel filtering with `imaging.getPixels()`
-8. **Apply trapping** to each layer (lighter layers get more trap)
-9. **Update layer names** with trap sizes
-10. **Delete source flattened layer**
+1. **Pre-flight validation** (RGB mode, 8-bit, exactly 1 unlocked layer required)
+2. **Read pixels from single layer** using `imaging.getPixels()`
+3. **Analyze colors** (extract unique RGB colors from pixel data)
+4. **Sort colors by lightness** (lightest to darkest)
+5. **Create layers** in sorted order (lightest first → stacks correctly)
+6. **Extract pixels per color** using manual pixel filtering
+7. **Apply trapping** to each layer (lighter layers get more trap)
+8. **Update layer names** with trap sizes
+9. **Delete source layer**
 
 ### Key Design Decisions
 
@@ -149,15 +148,9 @@ See `DECISIONS.md` for detailed rationale. Key points:
 
 6. **Alpha Channel Masking:** Check `mask.data[idx + 3]` (alpha) to determine if mask blocks expansion (transparent = allow, opaque = blocked).
 
-7. **Document Duplication:** Create duplicated document for separation, leave original unchanged (non-destructive workflow).
+7. **Pre-Flight Validation:** Require exactly 1 unlocked layer before opening dialog. User prepares document using Photoshop's native tools (Layer > Flatten Image, etc.). This eliminates all complexity around automated flattening, smart object rasterization, and hidden layer handling.
 
 ### Photoshop API Usage
-
-**Flattening:**
-```javascript
-// Uses batchPlay with 'flattenImage' command
-await action.batchPlay([{ _obj: 'flattenImage' }], options);
-```
 
 **Reading Pixels:**
 ```javascript
@@ -210,11 +203,15 @@ await action.batchPlay([
 - **Maximum 10 distinct colors** per document (could be made configurable)
 - **8-bit per channel** only (no 16/32-bit)
 
-### Layer Features Support
+### Document Preparation Requirements
 
-**Layer effects, adjustment layers, smart objects, blend modes, and masks are SUPPORTED** because the plugin uses Photoshop's native flatten operation. The constraints apply only to the **flattened result**, which must meet the above requirements (RGB, 8-bit, ≤10 colors).
+**Users must flatten their document to a single unlocked layer before using the plugin.** This means:
 
-**Hidden layers** are excluded from flattening per standard Photoshop behavior. The plugin warns users if hidden layers are detected.
+- **Layer effects, adjustment layers, smart objects, blend modes, and masks** must be flattened using Photoshop's **Layer > Flatten Image** command
+- The flattened result must meet the requirements: RGB mode, 8-bit, exactly 1 unlocked layer, ≤10 distinct colors
+- Plugin does not perform any automated flattening - user is responsible for document preparation
+
+This approach ensures predictable results and puts document preparation control in the user's hands, using Photoshop's native tools they already understand.
 
 ### Why RGB Mode Only (No CMYK Support)
 
@@ -288,9 +285,8 @@ const neighbors = [
 - Handles ImageData creation and disposal
 
 **Document operations:**
-- Flattening: `PhotoshopAPI.flattenDocument(document)`
-- Duplication: `PhotoshopAPI.duplicateDocument(document, name)`
 - Layer creation: `PhotoshopAPI.createLayer(document, name)`
+- Layer deletion: `PhotoshopAPI.deleteLayer(layer)`
 
 ## Error Handling Philosophy
 

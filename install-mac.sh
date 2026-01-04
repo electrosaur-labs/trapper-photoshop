@@ -101,18 +101,46 @@ install_to_version() {
     local PLUGINS_DIR="$PS_PATH/Plug-ins"
     local INSTALL_DIR="$PLUGINS_DIR/trapper"
 
-    # Create Plug-ins directory if it doesn't exist
-    mkdir -p "$PLUGINS_DIR"
-
-    # Remove old installation if it exists
-    if [ -d "$INSTALL_DIR" ]; then
-        echo "  Removing old installation..."
-        rm -rf "$INSTALL_DIR"
+    # Check if we need sudo
+    local NEED_SUDO=false
+    if [[ "$PS_PATH" == "/Applications/"* ]]; then
+        if [ ! -w "$PS_PATH" ]; then
+            NEED_SUDO=true
+        fi
     fi
 
-    # Copy plugin files
-    echo "  Copying files to $INSTALL_DIR"
-    cp -R "$TEMP_DIR/trapper" "$INSTALL_DIR"
+    if [ "$NEED_SUDO" = true ]; then
+        echo "  📌 Installing to system-wide location requires administrator privileges"
+
+        # Create Plug-ins directory if it doesn't exist
+        if [ ! -d "$PLUGINS_DIR" ]; then
+            sudo mkdir -p "$PLUGINS_DIR"
+        fi
+
+        # Remove old installation if it exists
+        if [ -d "$INSTALL_DIR" ]; then
+            echo "  Removing old installation..."
+            sudo rm -rf "$INSTALL_DIR"
+        fi
+
+        # Copy plugin files
+        echo "  Copying files to $INSTALL_DIR"
+        sudo cp -R "$TEMP_DIR/trapper" "$INSTALL_DIR"
+    else
+        # No sudo needed for user-specific location
+        # Create Plug-ins directory if it doesn't exist
+        mkdir -p "$PLUGINS_DIR"
+
+        # Remove old installation if it exists
+        if [ -d "$INSTALL_DIR" ]; then
+            echo "  Removing old installation..."
+            rm -rf "$INSTALL_DIR"
+        fi
+
+        # Copy plugin files
+        echo "  Copying files to $INSTALL_DIR"
+        cp -R "$TEMP_DIR/trapper" "$INSTALL_DIR"
+    fi
 
     echo "  ✓ Installed to Photoshop $version"
 }

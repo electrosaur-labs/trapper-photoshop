@@ -264,7 +264,7 @@ Performance depends on:
 ## Limitations
 
 - **RGB mode only** (no CMYK, Lab, Grayscale support)
-- Maximum 10 distinct colors per document
+- **Maximum 10 distinct colors** per document - This limit accommodates complex screen printing designs and packaging work. Most commercial spot color printing uses 4-6 colors or fewer.
 - 8-bit per channel only (no 16/32-bit)
 - Requires manual color reduction for complex images
 
@@ -305,6 +305,7 @@ GPL-3.0 License - See LICENSE file for details
 ## Roadmap
 
 - [ ] Support for more than 10 colors
+- [ ] Configurable minTrap for darkest layer (currently fixed at 0)
 - [ ] CMYK-specific trapping strategies
 - [ ] Underbase generation for screen printing
 - [ ] Batch processing support

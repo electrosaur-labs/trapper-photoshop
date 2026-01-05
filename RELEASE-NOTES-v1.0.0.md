@@ -114,7 +114,7 @@ All trap sizes accept multiple formats:
 1. **Pre-Flight Validation:** Checks for single unlocked layer requirement
 2. **Color Analysis:** Identifies distinct colors and sorts by lightness
 3. **Layer Creation:** Creates separate layer for each color (lightest to darkest)
-4. **Morphological Dilation:** Applies 4-connected neighbor expansion
+4. **Morphological Dilation:** Applies 4-connected neighbor expansion (top, right, bottom, left)
 5. **Trap Scaling:** Lightest layer gets maximum trap, darkest gets none
 6. **Layer Ordering:** Automatically stacks darkest on top, lightest on bottom
 

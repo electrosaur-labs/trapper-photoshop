@@ -18,7 +18,7 @@ The Trapper Photoshop plugin is a UXP (Unified Extensibility Platform) plugin th
 
 In multi-color printing, each color prints from a separate plate (offset lithography) or screen (screen printing). Slight misalignment between plates creates visible white gaps where colors should meet. Trapping compensates by expanding lighter colors under darker colors to create overlap.
 
-**Key principle:** Light colors spread under dark colors (universal across all printing modes)
+**Key principle:** Lighter colors expand under darker colors to create overlap (universal across all printing modes)
 
 **Why this works:**
 - Darker colors hide the trap (overlap is not visible)
@@ -35,7 +35,7 @@ In multi-color printing, each color prints from a separate plate (offset lithogr
 
 2. **Screen Printing**
    - Garment printing, posters, textiles
-   - Typical trap range: 0 to 4-6 points (0 to 0.056-0.083")
+   - Typical trap range: 0 to 4-6 points (0.056-0.083")
    - Typical DPI: 300-600
    - Use cases: T-shirts, posters, signage
 
@@ -52,9 +52,14 @@ All trap sizes can be specified in multiple formats:
 
 - **White base layer:** 0 pixels (optimization - white doesn't trap)
 - **Lightest non-white layer:** Maximum trap size
-- **Darkest layer:** Minimum trap size (typically 0 - defines edges)
+- **Darkest layer:** Minimum trap size (currently fixed at 0) - Defines sharp edges. The darkest layer has no darker color above it to hide trap under, so expansion would make edges appear blurry.
 - **Middle layers:** Linear interpolation
-- **Formula:** `pixels = (minTrap + (maxTrap - minTrap) * normalizedPosition) * DPI`
+- **Formula:**
+  ```
+  normalizedPosition = (layerIndex - whiteLayerCount) / (nonWhiteLayerCount - 1)
+  trapSize = minTrap + (maxTrap - minTrap) * (1.0 - normalizedPosition)
+  pixels = trapSize * DPI
+  ```
 
 ### Morphological Dilation Algorithm
 
@@ -322,7 +327,7 @@ await action.batchPlay([
 ## Limitations and Constraints
 
 - **RGB mode only** (no CMYK, Lab, Grayscale, Indexed)
-- **Maximum 10 distinct colors** per document (could be made configurable)
+- **Maximum 10 distinct colors** per document - This limit accommodates complex screen printing designs (typical max: 7-10 colors) and packaging work, while most commercial spot color printing uses 4-6 colors or fewer. Could be made configurable if needed.
 - **8-bit per channel** only (no 16/32-bit)
 
 ### Document Preparation Requirements

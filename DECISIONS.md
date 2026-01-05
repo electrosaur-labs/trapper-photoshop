@@ -82,7 +82,7 @@ This document records important design decisions made during the development of 
 
 ## 7. Iterative Dilation Algorithm
 
-**Decision:** Use iterative 4-connected neighbor dilation instead of kernel-based convolution.
+**Decision:** Use iterative 4-connected neighbor dilation (top, right, bottom, left) instead of kernel-based convolution.
 
 **Rationale:**
 - Simpler to implement and understand

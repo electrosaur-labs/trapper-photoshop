@@ -69,6 +69,11 @@ module.exports = (env, argv) => {
                     {
                         from: 'src/index.html',
                         to: 'index.html'
+                    },
+                    {
+                        from: 'src/icons',
+                        to: 'icons',
+                        noErrorOnMissing: true
                     }
                 ]
             })

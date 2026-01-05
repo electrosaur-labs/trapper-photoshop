@@ -95,6 +95,128 @@ npm run clean
 npm run package
 ```
 
+## Packaging for Distribution
+
+### Creating .ccx Files
+
+A `.ccx` file is a ZIP archive of the plugin files that can be installed in Photoshop.
+
+**Correct packaging method:**
+```bash
+npm run build    # Build to dist/
+npm run package  # Create trapper-v{version}.ccx
+```
+
+This runs `scripts/package.js` which:
+1. Reads version from `package.json`
+2. Creates ZIP archive from `dist/` directory
+3. Outputs `trapper-v{version}.ccx`
+
+### Critical Manifest Requirements
+
+**The manifest.json MUST have these properties for Photoshop 2024+ to recognize the plugin:**
+
+1. **`host` as object (not array)** when supporting single host:
+   ```json
+   "host": {
+     "app": "PS",
+     "minVersion": "23.3.0",
+     "data": {
+       "apiVersion": 2
+     }
+   }
+   ```
+
+2. **Icons array** (required for plugin registration):
+   ```json
+   "icons": [
+     {
+       "width": 24,
+       "height": 24,
+       "path": "icons/icon_light.png",
+       "scale": [1, 2],
+       "theme": ["lightest", "light"],
+       "species": ["generic"]
+     },
+     {
+       "width": 24,
+       "height": 24,
+       "path": "icons/icon_dark.png",
+       "scale": [1, 2],
+       "theme": ["darkest", "dark"],
+       "species": ["generic"]
+     }
+   ]
+   ```
+
+3. **Required permissions:**
+   ```json
+   "requiredPermissions": {
+     "localFileSystem": "plugin",
+     "network": {
+       "domains": "all"
+     },
+     "clipboard": "readAndWrite"
+   }
+   ```
+
+4. **Icon files must exist:**
+   - `src/icons/icon_light.png` (24×24 PNG)
+   - `src/icons/icon_dark.png` (24×24 PNG)
+
+### Common Packaging Errors
+
+**Error: "Couldn't install plugin" on Mac**
+- **Cause:** Creative Cloud on Mac often misidentifies .ccx files when double-clicked
+- **Solution:** Use manual installation or automated script (see `install-mac.sh`)
+
+**Error: Plugin doesn't appear in Photoshop**
+- **Cause 1:** Icons missing or manifest format incorrect
+- **Cause 2:** Looking in wrong place - command-type plugins appear in **Plugins** menu, not Window > Extensions
+- **Solution:** Ensure manifest has icons array with `species: ["generic"]` and `host` is object not array
+
+**Error: Plugin appears in UXP Developer Tool but not after packaging**
+- **Cause:** UXP Dev Tool is more forgiving than production install
+- **Solution:** Compare your .ccx with one created by UXP Dev Tool (load plugin in Dev Tool, use "Package" button)
+
+### Verifying Package Contents
+
+Check what's in the .ccx:
+```bash
+unzip -l trapper-v1.0.0.ccx
+```
+
+Should contain:
+- `manifest.json` (with correct format)
+- `index.html`
+- `index.js`
+- `icons/icon_dark.png`
+- `icons/icon_light.png`
+- `icon-48.png` (optional, for marketplace)
+
+### Mac Installation
+
+On Mac, Creative Cloud often fails to install .ccx files correctly. Provide users with `install-mac.sh`:
+
+```bash
+#!/bin/bash
+# Extracts .ccx and copies to Photoshop Plug-ins directory
+# Handles sudo for system-wide Photoshop installations
+# Supports multiple Photoshop versions
+```
+
+See `install-mac.sh` for full implementation.
+
+### Testing Packaged Plugin
+
+1. **Install via UXP Developer Tool first** - verifies plugin works
+2. **Create .ccx package** - `npm run package`
+3. **Install .ccx** - Test actual installation process
+4. **Verify location:**
+   - **Command plugins:** Plugins menu → Color Trapping...
+   - **Panel plugins:** Window > Extensions
+5. **Test in fresh Photoshop session**
+
 ## Plugin Architecture
 
 ### Entry Point and Dialog Management

@@ -6,9 +6,11 @@ Read the following files to understand the current project state and design deci
 
 1. **DECISIONS.md** - Design rationale and architectural decisions
 2. **README.md** - Project overview, features, and usage
-3. **Recent git history** - Run `git log --oneline -10` to see latest changes
+3. **CLAUDE.md** section "Packaging for Distribution" - Critical manifest requirements and common errors
+4. **Recent git history** - Run `git log --oneline -10` to see latest changes
 
 After reading these files, provide a brief summary of:
 - Current project state
 - Recent changes from git log
 - Key design decisions that are important to remember
+- Critical packaging requirements (manifest format, icons, permissions)

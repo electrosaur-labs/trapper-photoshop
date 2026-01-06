@@ -1,6 +1,6 @@
 {
   "name": "trapper-photoshop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Adobe Photoshop UXP plugin for professional color trapping in print production",
   "main": "dist/index.js",
   "scripts": {

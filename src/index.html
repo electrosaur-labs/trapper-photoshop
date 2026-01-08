@@ -7,12 +7,14 @@
             margin: 0;
             padding: 0;
             font-family: 'Adobe Clean', sans-serif;
+            background: #ffffff;
         }
 
         dialog {
             border: none;
             border-radius: 8px;
             padding: 0;
+            background: #ffffff;
         }
 
         .trapper-dialog {
@@ -20,6 +22,7 @@
             font-size: 14px;
             color: #323232;
             min-width: 400px;
+            background: #ffffff;
         }
 
         .trapper-header {
@@ -50,7 +53,7 @@
             margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #6e6e6e;
+            color: #323232;
         }
 
         .trapper-field {
@@ -72,7 +75,13 @@
             border-radius: 4px;
             font-size: 13px;
             background: white;
+            color: #323232;
             box-sizing: border-box;
+        }
+
+        .trapper-field input::placeholder {
+            color: #6e6e6e;
+            opacity: 1;
         }
 
         .trapper-field input:focus,

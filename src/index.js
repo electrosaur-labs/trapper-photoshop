@@ -17,7 +17,8 @@ let listenersAttached = false;
  * Plugin initialization
  */
 async function initialize() {
-    console.log("Trapper Plugin: Initializing...");
+    const buildId = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev';
+    console.log(`Trapper Plugin: Initializing... (Build: ${buildId})`);
 
     try {
         // Initialize controller

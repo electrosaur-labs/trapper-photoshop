@@ -1,8 +1,10 @@
 # Trapper for Photoshop
 
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Adobe Photoshop](https://img.shields.io/badge/Adobe%20Photoshop-2024+-31A8FF?logo=adobe-photoshop)](https://www.adobe.com/products/photoshop.html)
 [![UXP](https://img.shields.io/badge/UXP-5.0-FF61F6)](https://developer.adobe.com/photoshop/uxp/)
+
+> **Trapper solves the "white gap" problem in print registration.** Instead of manually expanding channels or stroking selections, Trapper uses a lightness-aware algorithm to automatically spread lighter colors under darker ones, ensuring perfect registration for Screen Printing (4pt) and Offset Lithography (1/32").
 
 A professional UXP plugin for Adobe Photoshop that provides automated color trapping for print production. Supports both offset lithography and screen printing workflows.
 
@@ -287,7 +289,7 @@ Quick start:
 
 ## License
 
-GPL-3.0 License - See LICENSE file for details
+Apache-2.0 License - See LICENSE file for details
 
 ## Credits
 

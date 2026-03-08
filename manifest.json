@@ -1,6 +1,6 @@
 {
   "id": "org.electrosaur.trapper",
-  "name": "Trapper",
+  "name": "Electrosaur: Trapper",
   "version": "1.0.4",
   "main": "index.html",
   "host": {
